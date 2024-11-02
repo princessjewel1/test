@@ -1,0 +1,190 @@
+import heapq
+import math
+import time
+
+def manhattan_distance(state, goal_state):
+    """Calculate the Manhattan distance of the current state from the goal state."""
+    distance = 0
+    for i in range(1, 9):
+        if i in state:  # Include only tiles 1-8 in distance calculation
+            current_index = state.index(i)
+            goal_index = goal_state.index(i)
+            current_row, current_col = divmod(current_index, 3)
+            goal_row, goal_col = divmod(goal_index, 3)
+            distance += abs(current_row - goal_row) + abs(current_col - goal_col)
+    return distance
+
+def euclidean_distance(state, goal_state):
+    """Calculate the Euclidean distance of the current state from the goal state."""
+    distance = 0
+    for i in range(1, 9):
+        if i in state:  # Include only tiles 1-8 in distance calculation
+            current_index = state.index(i)
+            goal_index = goal_state.index(i)
+            current_row, current_col = divmod(current_index, 3)
+            goal_row, goal_col = divmod(goal_index, 3)
+            distance += math.sqrt((current_row - goal_row) ** 2 + (current_col - goal_col) ** 2)
+    return distance
+
+def get_neighbors(state):
+    """Get all valid neighboring states from the current state."""
+    neighbors = []
+    index = state.index(0)
+    row, col = divmod(index, 3)
+
+    # Define possible moves Up, Down, Left, Right
+    possible_moves = [(row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)]
+
+    for r, c in possible_moves:
+        if 0 <= r < 3 and 0 <= c < 3:
+            new_index = r * 3 + c
+            new_state = state[:]
+            new_state[index], new_state[new_index] = new_state[new_index], new_state[index]
+            neighbors.append(new_state)
+
+    return neighbors
+
+def bfs(initial_state, goal_state):
+    """Perform BFS to find the path from the initial state to the goal state."""
+    queue = [(initial_state, 0, [initial_state])]  # State, depth, path
+    visited = set()
+    nodes_expanded = 0
+
+    while queue:
+        state, depth, path = queue.pop(0)
+        nodes_expanded += 1
+
+        if tuple(state) == tuple(goal_state):
+            return {
+                "success": True,
+                "path": path,
+                "cost": depth,
+                "nodes_expanded": nodes_expanded,
+                "depth": depth
+            }
+
+        visited.add(tuple(state))
+
+        for neighbor in get_neighbors(state):
+            if tuple(neighbor) not in visited:
+                queue.append((neighbor, depth + 1, path + [neighbor]))
+
+    return {"success": False}
+
+def dfs(initial_state, goal_state):
+    """Perform DFS to find the path from the initial state to the goal state."""
+    stack = [(initial_state, 0, [initial_state])]  # State, depth, path
+    visited = set()
+    nodes_expanded = 0
+
+    while stack:
+        state, depth, path = stack.pop()
+        nodes_expanded += 1
+
+        if tuple(state) == tuple(goal_state):
+            return {
+                "success": True,
+                "path": path,
+                "cost": depth,
+                "nodes_expanded": nodes_expanded,
+                "depth": depth
+            }
+
+        visited.add(tuple(state))
+
+        for neighbor in get_neighbors(state):
+            if tuple(neighbor) not in visited:
+                stack.append((neighbor, depth + 1, path + [neighbor]))
+
+    return {"success": False}
+
+def a_star(initial_state, goal_state, heuristic):
+    """Perform A* search to find the path from the initial state to the goal state."""
+    queue = [(0, initial_state, 0, [initial_state])]  # Estimated cost, state, cost from start, path
+    visited = set()
+    nodes_expanded = 0
+
+    while queue:
+        _, state, cost, path = heapq.heappop(queue)
+        nodes_expanded += 1
+
+        if tuple(state) == tuple(goal_state):
+            return {
+                "success": True,
+                "path": path,
+                "cost": cost,
+                "nodes_expanded": nodes_expanded,
+                "depth": len(path) - 1  # Depth is length of path - 1
+            }
+
+        visited.add(tuple(state))
+
+        for neighbor in get_neighbors(state):
+            if tuple(neighbor) not in visited:
+                estimated_cost = cost + 1 + heuristic(neighbor, goal_state)
+                heapq.heappush(queue, (estimated_cost, neighbor, cost + 1, path + [neighbor]))
+
+    return {"success": False}
+
+# Define the initial and goal states
+initial_state = [1, 2, 5, 3, 4, 0, 6, 7, 8]  # Changeable to test various cases
+goal_state = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+# Running and timing BFS
+start_time = time.time()
+bfs_result = bfs(initial_state, goal_state)
+end_time = time.time()
+print("BFS Result:")
+if bfs_result["success"]:
+    print("SUCCESS - Path to goal:", bfs_result["path"])
+    print("Cost of path:", bfs_result["cost"])
+    print("Nodes expanded:", bfs_result["nodes_expanded"])
+    print("Search depth:", bfs_result["depth"])
+else:
+    print("FAILURE: No valid path found.")
+print("Running time: {:.4f} seconds".format(end_time - start_time))
+print()
+
+# Running and timing DFS
+start_time = time.time()
+dfs_result = dfs(initial_state, goal_state)
+end_time = time.time()
+print("DFS Result:")
+if dfs_result["success"]:
+    print("SUCCESS - Path to goal:", dfs_result["path"])
+    print("Cost of path:", dfs_result["cost"])
+    print("Nodes expanded:", dfs_result["nodes_expanded"])
+    print("Search depth:", dfs_result["depth"])
+else:
+    print("FAILURE: No valid path found.")
+print("Running time: {:.4f} seconds".format(end_time - start_time))
+print()
+
+# Running and timing A* with Manhattan heuristic
+start_time = time.time()
+a_star_manhattan_result = a_star(initial_state, goal_state, manhattan_distance)
+end_time = time.time()
+print("A* with Manhattan Distance Result:")
+if a_star_manhattan_result["success"]:
+    print("SUCCESS - Path to goal:", a_star_manhattan_result["path"])
+    print("Cost of path:", a_star_manhattan_result["cost"])
+    print("Nodes expanded:", a_star_manhattan_result["nodes_expanded"])
+    print("Search depth:", a_star_manhattan_result["depth"])
+else:
+    print("FAILURE: No valid path found.")
+print("Running time: {:.4f} seconds".format(end_time - start_time))
+print()
+
+# Running and timing A* with Euclidean heuristic
+start_time = time.time()
+a_star_euclidean_result = a_star(initial_state, goal_state, euclidean_distance)
+end_time = time.time()
+print("A* with Euclidean Distance Result:")
+if a_star_euclidean_result["success"]:
+    print("SUCCESS - Path to goal:", a_star_euclidean_result["path"])
+    print("Cost of path:", a_star_euclidean_result["cost"])
+    print("Nodes expanded:", a_star_euclidean_result["nodes_expanded"])
+    print("Search depth:", a_star_euclidean_result["depth"])
+else:
+    print("FAILURE: No valid path found.")
+print("Running time: {:.4f} seconds".format(end_time - start_time))
